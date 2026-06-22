@@ -57,6 +57,7 @@ Acceptance criteria:
 ## Quick Start
 
 ```powershell
+cd BookCatalog
 docker-compose up --build
 ```
 
@@ -72,6 +73,7 @@ Demo credentials:
 Start SQL Server locally and run:
 
 ```powershell
+cd BookCatalog
 sqlcmd -S localhost -U sa -P BookCatalog_2024! -i db/01_schema.sql
 sqlcmd -S localhost -U sa -P BookCatalog_2024! -i db/02_seed.sql
 dotnet run --project src/BookCatalog.API/BookCatalog.API.csproj
@@ -130,4 +132,4 @@ Infrastructure came last on the backend side. Repositories use raw `Microsoft.Da
 
 For the frontend, I kept the first screen as the actual book catalog rather than a landing page. The Angular app uses standalone components, signal-based local state, a functional auth interceptor, and a functional guard for admin routes. The UI is deliberately simple: public users browse cards, administrators work from a table and form.
 
-The final verification step was `dotnet test BookCatalog.sln`, which passed with 29 tests. I could not verify the Angular production build on this machine because Node and Angular CLI were not installed locally, but the frontend project is scaffolded for `npm install` followed by `ng build --configuration=production`.
+The final verification step was `dotnet test BookCatalog.slnx` from the `BookCatalog` folder, which passed with 29 tests. I could not verify the Angular production build on this machine because Node and Angular CLI were not installed locally, but the frontend project is scaffolded for `npm install` followed by `ng build --configuration=production`.
