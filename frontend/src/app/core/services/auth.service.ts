@@ -26,9 +26,9 @@ export class AuthService {
     }
 
     return {
-      id: String(payload.sub ?? ''),
-      username: String(payload.username ?? ''),
-      email: String(payload.email ?? ''),
+      id: String(payload['sub'] ?? ''),
+      username: String(payload['username'] ?? ''),
+      email: String(payload['email'] ?? ''),
       createdAt: ''
     };
   });
