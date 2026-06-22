@@ -33,5 +33,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .WithOne(task => task.User)
             .HasForeignKey(task => task.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasData(
+            new User(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Ada Lovelace", "ada@example.com"),
+            new User(Guid.Parse("22222222-2222-2222-2222-222222222222"), "Grace Hopper", "grace@example.com"));
     }
 }

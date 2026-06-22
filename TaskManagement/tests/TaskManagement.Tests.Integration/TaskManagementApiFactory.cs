@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TaskManagement.Application.Common;
-using TaskManagement.Domain.Entities;
 using TaskManagement.Infrastructure.Persistence;
 
 namespace TaskManagement.Tests.Integration;
@@ -40,7 +39,6 @@ public sealed class TaskManagementApiFactory : WebApplicationFactory<Program>
         await dbContext.Database.EnsureDeletedAsync();
         await dbContext.Database.EnsureCreatedAsync();
 
-        dbContext.Users.Add(new User(SeedUserId, "Ada Lovelace", "ada@example.com"));
         await dbContext.SaveChangesAsync();
     }
 }

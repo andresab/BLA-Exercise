@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using DomainTaskStatus = TaskManagement.Domain.Enums.TaskStatus;
 
 namespace TaskManagement.Application.Tasks;
@@ -18,11 +17,8 @@ public sealed record TaskResponse(
     UserSummaryResponse User);
 
 public sealed record CreateTaskRequest(
-    [Required]
-    [MaxLength(200)]
     string Title,
 
-    [MaxLength(2000)]
     string? Description,
 
     DomainTaskStatus Status,
@@ -32,11 +28,8 @@ public sealed record CreateTaskRequest(
     Guid UserId);
 
 public sealed record UpdateTaskRequest(
-    [Required]
-    [MaxLength(200)]
     string Title,
 
-    [MaxLength(2000)]
     string? Description,
 
     DomainTaskStatus Status,

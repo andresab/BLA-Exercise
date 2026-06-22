@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Npgsql;
 using TaskManagement.Application.Common;
@@ -37,6 +38,12 @@ public sealed class ExceptionHandlingMiddleware
     {
         var problem = exception switch
         {
+            UnauthorizedAccessException => new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Unauthorized",
+                Detail = exception.Message
+            },
             NotFoundException => new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
@@ -71,7 +78,8 @@ public sealed class ExceptionHandlingMiddleware
         }
 
         context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
-        await context.Response.WriteAsJsonAsync(problem);
+        context.Response.ContentType = "application/problem+json";
+        await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
     }
 
     private bool ShouldIncludeExceptionDetails()

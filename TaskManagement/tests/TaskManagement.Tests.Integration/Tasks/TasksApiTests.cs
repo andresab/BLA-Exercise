@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -21,6 +22,7 @@ public sealed class TasksApiTests
         using var factory = new TaskManagementApiFactory();
         await factory.ResetDatabaseAsync();
         using var client = factory.CreateClient();
+        await AuthenticateAsync(client);
 
         var request = new CreateTaskRequest(
             "Prepare sprint planning",
@@ -48,6 +50,7 @@ public sealed class TasksApiTests
         using var factory = new TaskManagementApiFactory();
         await factory.ResetDatabaseAsync();
         using var client = factory.CreateClient();
+        await AuthenticateAsync(client);
 
         var createResponse = await client.PostAsJsonAsync(
             "/api/tasks",
@@ -93,22 +96,48 @@ public sealed class TasksApiTests
     }
 
     [Fact]
-    public async Task CreateTask_WithUnknownUser_ReturnsNotFound()
+    public async Task GetTasks_WithoutToken_ReturnsUnauthorized()
     {
         using var factory = new TaskManagementApiFactory();
         await factory.ResetDatabaseAsync();
         using var client = factory.CreateClient();
 
+        var response = await client.GetAsync("/api/tasks");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized, await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task CreateTask_WithPastDueDate_ReturnsValidationProblem()
+    {
+        using var factory = new TaskManagementApiFactory();
+        await factory.ResetDatabaseAsync();
+        using var client = factory.CreateClient();
+        await AuthenticateAsync(client);
+
         var response = await client.PostAsJsonAsync(
             "/api/tasks",
             new CreateTaskRequest(
-                "Unassigned task",
+                "Past task",
                 null,
                 DomainTaskStatus.Pending,
-                DateTime.UtcNow,
-                Guid.NewGuid()),
+                DateTime.UtcNow.AddDays(-1),
+                TaskManagementApiFactory.SeedUserId),
             JsonOptions);
 
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound, await response.Content.ReadAsStringAsync());
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest, await response.Content.ReadAsStringAsync());
+        response.Content.Headers.ContentType!.MediaType.Should().Be("application/problem+json");
+    }
+
+    private static async Task AuthenticateAsync(HttpClient client)
+    {
+        var response = await client.PostAsJsonAsync("/api/auth/token", new { email = "ada@example.com" }, JsonOptions);
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var token = document.RootElement.GetProperty("accessToken").GetString();
+        token.Should().NotBeNullOrWhiteSpace();
+
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 }

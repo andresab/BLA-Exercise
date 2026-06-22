@@ -1,0 +1,37 @@
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: task_management
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d task_management"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__TaskManagementDb: Host=db;Port=5432;Database=task_management;Username=postgres;Password=postgres
+      Jwt__Key: task-management-docker-jwt-key-32-bytes-minimum
+      Jwt__Issuer: TaskManagement
+      Jwt__Audience: TaskManagementClient
+      Jwt__ExpirationMinutes: 120
+    ports:
+      - "8081:8080"
+
+volumes:
+  postgres-data:

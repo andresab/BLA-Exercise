@@ -1,15 +1,15 @@
 # Task Management API
 
-Production-ready RESTful API for a Task Management System built with .NET 10, ASP.NET Core, Entity Framework Core, PostgreSQL, xUnit, and Clean Architecture.
+Production-ready RESTful API for a Task Management System built with .NET 10, ASP.NET Core, Entity Framework Core, PostgreSQL, JWT authentication, FluentValidation, xUnit, Docker, and Clean Architecture.
 
 ## Architecture
 
 The solution is split into four layers:
 
 - `TaskManagement.Domain`: Entities, enum, and domain validation.
-- `TaskManagement.Application`: Use cases, DTOs, service contracts, and the `IApplicationDbContext` EF abstraction.
-- `TaskManagement.Infrastructure`: PostgreSQL EF Core `DbContext`, entity configuration, and migrations.
-- `TaskManagement.API`: Controllers, Swagger/OpenAPI, JSON configuration, and exception handling middleware.
+- `TaskManagement.Application`: Use cases, DTOs, FluentValidation validators, service contracts, and the `IApplicationDbContext` EF abstraction.
+- `TaskManagement.Infrastructure`: PostgreSQL EF Core `DbContext`, entity configuration, migrations, and sample-data seeding.
+- `TaskManagement.API`: Controllers, JWT authentication, Swagger/OpenAPI, JSON configuration, validation filter, and exception handling middleware.
 
 EF Core is used directly through the `IApplicationDbContext` abstraction. A repository layer was intentionally not added because the current use cases are straightforward CRUD/query workflows and EF already provides the needed unit-of-work/query abstraction.
 
@@ -41,9 +41,26 @@ Swagger UI is enabled in Development at:
 https://localhost:<port>/swagger
 ```
 
+## Run With Docker
+
+```powershell
+cd TaskManagement
+docker compose up -d --build
+```
+
+The Docker stack starts:
+
+- PostgreSQL on `localhost:5432`
+- API on `http://localhost:8081`
+
+The API applies EF migrations at startup. The seed migration creates sample users and tasks.
+
 ## Database Migrations
 
-An initial migration is included under `src/TaskManagement.Infrastructure/Persistence/Migrations`.
+Migrations are included under `src/TaskManagement.Infrastructure/Persistence/Migrations`, including sample data for:
+
+- `ada@example.com`
+- `grace@example.com`
 
 Install or restore EF tooling, then update the database:
 
@@ -56,6 +73,7 @@ If local tool resolution is unavailable on the machine, install `dotnet-ef` glob
 
 ## API Endpoints
 
+- `POST /api/auth/token`: Create JWT for a seeded user email
 - `POST /api/tasks`: Create Task
 - `GET /api/tasks/{id}`: Get Task By Id
 - `GET /api/tasks`: Get All Tasks
@@ -63,11 +81,42 @@ If local tool resolution is unavailable on the machine, install `dotnet-ef` glob
 - `DELETE /api/tasks/{id}`: Delete Task
 - `GET /api/tasks/by-user/{userId}`: Get Tasks By User
 
+Task endpoints require a bearer token. Users can only create, read, update, and delete their own tasks.
+
+## Authentication Example
+
+```http
+POST /api/auth/token
+Content-Type: application/json
+
+{
+  "email": "ada@example.com"
+}
+```
+
+Use the returned `accessToken` as:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+## Validation And Errors
+
+Request validation uses FluentValidation:
+
+- Required fields are validated.
+- Task titles are limited to 200 characters.
+- Task descriptions are limited to 2000 characters.
+- `DueDate` cannot be in the past when creating a task.
+
+Validation, authorization, not-found, conflict, and unexpected errors are returned as RFC7807 ProblemDetails responses.
+
 ## Example Request
 
 ```http
 POST /api/tasks
 Content-Type: application/json
+Authorization: Bearer <accessToken>
 
 {
   "title": "Prepare sprint planning",
@@ -107,7 +156,7 @@ The test suite includes:
 - Unit tests for domain validation.
 - Integration tests for task API endpoints using `WebApplicationFactory` and an isolated EF Core in-memory database.
 
-## Original Prompt
+## First Prompt
 
 ```text
 Act as a Senior .NET Architect and Software Engineer.
@@ -170,4 +219,34 @@ Documentation:
 
 * Configure Swagger/OpenAPI.
 * Include request and response examples.
+```
+
+## Second Prompt
+
+```text
+Apply following changes in TaskManagement solution and include this prompt in README.md
+
+1. Fix NuGet packages vulnerabilities.
+
+2. Provide Docker support. Include following files: 
+* Dockerfile
+* docker-compose.yml
+
+3. Create sample data using EF Migrations.
+
+4. Implement following features:
+
+Validation:
+* Use FluentValidation.
+* Validate required fields.
+* Validate title length.
+* DueDate cannot be in the past when creating a task.
+
+Authentication & Authorization:
+* Implement JWT authentication.
+* Users can only access their own tasks.
+
+Error Handling:
+* Global exception middleware.
+* Return RFC7807 ProblemDetails responses.
 ```
