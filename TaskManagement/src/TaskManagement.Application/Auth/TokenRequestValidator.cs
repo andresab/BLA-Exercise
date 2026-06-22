@@ -1,7 +1,6 @@
 using FluentValidation;
-using TaskManagement.API.Controllers;
 
-namespace TaskManagement.API.Auth;
+namespace TaskManagement.Application.Auth;
 
 public sealed class TokenRequestValidator : AbstractValidator<TokenRequest>
 {

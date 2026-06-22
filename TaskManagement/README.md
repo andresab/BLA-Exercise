@@ -7,11 +7,11 @@ Production-ready RESTful API for a Task Management System built with .NET 10, AS
 The solution is split into four layers:
 
 - `TaskManagement.Domain`: Entities, enum, and domain validation.
-- `TaskManagement.Application`: Use cases, DTOs, FluentValidation validators, service contracts, and the `IApplicationDbContext` EF abstraction.
-- `TaskManagement.Infrastructure`: PostgreSQL EF Core `DbContext`, entity configuration, migrations, and sample-data seeding.
+- `TaskManagement.Application`: Use cases, DTOs, FluentValidation validators, service contracts, repository abstractions, and auth/token abstractions.
+- `TaskManagement.Infrastructure`: PostgreSQL EF Core `DbContext`, repository implementations, JWT token generation, entity configuration, migrations, and sample-data seeding.
 - `TaskManagement.API`: Controllers, JWT authentication, Swagger/OpenAPI, JSON configuration, validation filter, and exception handling middleware.
 
-EF Core is used directly through the `IApplicationDbContext` abstraction. A repository layer was intentionally not added because the current use cases are straightforward CRUD/query workflows and EF already provides the needed unit-of-work/query abstraction.
+The service layer is independent of EF Core. Application services depend on repository and unit-of-work abstractions, while Infrastructure provides EF-backed implementations. Controllers are intentionally thin and delegate business workflows to Application services.
 
 ## Requirements
 
@@ -249,4 +249,13 @@ Authentication & Authorization:
 Error Handling:
 * Global exception middleware.
 * Return RFC7807 ProblemDetails responses.
+```
+
+## Third Prompt
+
+```text
+Apply following code improvements and save this prompt in README.md file:
+1. Use primary controller in all the classes if possible.
+2. Make service layer independent of EF, applying repository pattern for task and auth features.
+3. Make AuthController light: Move auth logic to application and infrastructure layers following Clean Architecture and SOLID principles.
 ```

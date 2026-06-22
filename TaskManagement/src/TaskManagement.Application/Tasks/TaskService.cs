@@ -1,18 +1,14 @@
-using Microsoft.EntityFrameworkCore;
 using TaskManagement.Application.Common;
+using TaskManagement.Application.Users;
 using TaskManagement.Domain.Entities;
 
 namespace TaskManagement.Application.Tasks;
 
-public sealed class TaskService : ITaskService
+public sealed class TaskService(
+    ITaskRepository taskRepository,
+    IUserRepository userRepository,
+    IUnitOfWork unitOfWork) : ITaskService
 {
-    private readonly IApplicationDbContext _dbContext;
-
-    public TaskService(IApplicationDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
-
     public async Task<TaskResponse> CreateAsync(Guid currentUserId, CreateTaskRequest request, CancellationToken cancellationToken = default)
     {
         await EnsureUserExistsAsync(currentUserId, cancellationToken);
@@ -24,38 +20,28 @@ public sealed class TaskService : ITaskService
             request.DueDate,
             currentUserId);
 
-        _dbContext.Tasks.Add(task);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await taskRepository.AddAsync(task, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await GetByIdAsync(currentUserId, task.Id, cancellationToken);
     }
 
     public async Task<TaskResponse> GetByIdAsync(Guid currentUserId, Guid id, CancellationToken cancellationToken = default)
     {
-        var task = await QueryTasks()
-            .AsNoTracking()
-            .SingleOrDefaultAsync(task => task.Id == id && task.UserId == currentUserId, cancellationToken);
+        var task = await taskRepository.GetByIdForUserAsync(id, currentUserId, cancellationToken);
 
         return task is null ? throw new NotFoundException("Task", id) : ToResponse(task);
     }
 
     public async Task<IReadOnlyCollection<TaskResponse>> GetAllAsync(Guid currentUserId, CancellationToken cancellationToken = default)
     {
-        return await QueryTasks()
-            .AsNoTracking()
-            .Where(task => task.UserId == currentUserId)
-            .OrderBy(task => task.DueDate)
-            .ThenBy(task => task.Title)
-            .Select(task => ToResponse(task))
-            .ToListAsync(cancellationToken);
+        var tasks = await taskRepository.ListByUserAsync(currentUserId, cancellationToken);
+        return tasks.Select(ToResponse).ToList();
     }
 
     public async Task<TaskResponse> UpdateAsync(Guid currentUserId, Guid id, UpdateTaskRequest request, CancellationToken cancellationToken = default)
     {
-        var task = await _dbContext.Tasks.SingleOrDefaultAsync(
-            task => task.Id == id && task.UserId == currentUserId,
-            cancellationToken);
-
+        var task = await taskRepository.GetByIdForUserAsync(id, currentUserId, cancellationToken);
         if (task is null)
         {
             throw new NotFoundException("Task", id);
@@ -68,24 +54,21 @@ public sealed class TaskService : ITaskService
             request.DueDate,
             currentUserId);
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return await GetByIdAsync(currentUserId, id, cancellationToken);
     }
 
     public async Task DeleteAsync(Guid currentUserId, Guid id, CancellationToken cancellationToken = default)
     {
-        var task = await _dbContext.Tasks.SingleOrDefaultAsync(
-            task => task.Id == id && task.UserId == currentUserId,
-            cancellationToken);
-
+        var task = await taskRepository.GetByIdForUserAsync(id, currentUserId, cancellationToken);
         if (task is null)
         {
             throw new NotFoundException("Task", id);
         }
 
-        _dbContext.Tasks.Remove(task);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        taskRepository.Delete(task);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<TaskResponse>> GetByUserAsync(Guid currentUserId, Guid userId, CancellationToken cancellationToken = default)
@@ -97,24 +80,14 @@ public sealed class TaskService : ITaskService
 
         await EnsureUserExistsAsync(userId, cancellationToken);
 
-        return await QueryTasks()
-            .AsNoTracking()
-            .Where(task => task.UserId == userId)
-            .OrderBy(task => task.DueDate)
-            .ThenBy(task => task.Title)
-            .Select(task => ToResponse(task))
-            .ToListAsync(cancellationToken);
-    }
-
-    private IQueryable<TaskItem> QueryTasks()
-    {
-        return _dbContext.Tasks.Include(task => task.User);
+        var tasks = await taskRepository.ListByUserAsync(userId, cancellationToken);
+        return tasks.Select(ToResponse).ToList();
     }
 
     private async Task EnsureUserExistsAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var exists = await _dbContext.Users.AnyAsync(user => user.Id == userId, cancellationToken);
-        if (!exists)
+        var user = await userRepository.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
         {
             throw new NotFoundException("User", userId);
         }

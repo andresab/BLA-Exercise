@@ -3,23 +3,14 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using TaskManagement.Application.Auth;
 using TaskManagement.Domain.Entities;
 
-namespace TaskManagement.API.Auth;
+namespace TaskManagement.Infrastructure.Auth;
 
-public interface IJwtTokenService
+public sealed class JwtTokenGenerator(IOptions<JwtOptions> options) : IJwtTokenGenerator
 {
-    string CreateToken(User user);
-}
-
-public sealed class JwtTokenService : IJwtTokenService
-{
-    private readonly JwtOptions _options;
-
-    public JwtTokenService(IOptions<JwtOptions> options)
-    {
-        _options = options.Value;
-    }
+    private readonly JwtOptions _options = options.Value;
 
     public string CreateToken(User user)
     {

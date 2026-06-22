@@ -9,15 +9,8 @@ namespace TaskManagement.API.Controllers;
 [Authorize]
 [Route("api/tasks")]
 [Produces("application/json")]
-public sealed class TasksController : ControllerBase
+public sealed class TasksController(ITaskService taskService) : ControllerBase
 {
-    private readonly ITaskService _taskService;
-
-    public TasksController(ITaskService taskService)
-    {
-        _taskService = taskService;
-    }
-
     /// <summary>Creates a task.</summary>
     /// <remarks>
     /// Request example:
@@ -40,7 +33,7 @@ public sealed class TasksController : ControllerBase
             return Forbid();
         }
 
-        var response = await _taskService.CreateAsync(currentUserId, request, cancellationToken);
+        var response = await taskService.CreateAsync(currentUserId, request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, response);
     }
 
@@ -51,7 +44,7 @@ public sealed class TasksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<TaskResponse>> GetById(Guid id, CancellationToken cancellationToken)
     {
-        return Ok(await _taskService.GetByIdAsync(GetCurrentUserId(), id, cancellationToken));
+        return Ok(await taskService.GetByIdAsync(GetCurrentUserId(), id, cancellationToken));
     }
 
     /// <summary>Gets all tasks.</summary>
@@ -60,7 +53,7 @@ public sealed class TasksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IReadOnlyCollection<TaskResponse>>> GetAll(CancellationToken cancellationToken)
     {
-        return Ok(await _taskService.GetAllAsync(GetCurrentUserId(), cancellationToken));
+        return Ok(await taskService.GetAllAsync(GetCurrentUserId(), cancellationToken));
     }
 
     /// <summary>Updates a task.</summary>
@@ -82,7 +75,7 @@ public sealed class TasksController : ControllerBase
             return Forbid();
         }
 
-        return Ok(await _taskService.UpdateAsync(currentUserId, id, request, cancellationToken));
+        return Ok(await taskService.UpdateAsync(currentUserId, id, request, cancellationToken));
     }
 
     /// <summary>Deletes a task.</summary>
@@ -92,7 +85,7 @@ public sealed class TasksController : ControllerBase
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        await _taskService.DeleteAsync(GetCurrentUserId(), id, cancellationToken);
+        await taskService.DeleteAsync(GetCurrentUserId(), id, cancellationToken);
         return NoContent();
     }
 
@@ -110,7 +103,7 @@ public sealed class TasksController : ControllerBase
             return Forbid();
         }
 
-        return Ok(await _taskService.GetByUserAsync(currentUserId, userId, cancellationToken));
+        return Ok(await taskService.GetByUserAsync(currentUserId, userId, cancellationToken));
     }
 
     private Guid GetCurrentUserId()

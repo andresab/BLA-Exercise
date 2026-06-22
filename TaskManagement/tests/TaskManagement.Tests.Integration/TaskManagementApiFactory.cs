@@ -3,8 +3,13 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using TaskManagement.Application.Auth;
 using TaskManagement.Application.Common;
+using TaskManagement.Application.Tasks;
+using TaskManagement.Application.Users;
+using TaskManagement.Infrastructure.Auth;
 using TaskManagement.Infrastructure.Persistence;
+using TaskManagement.Infrastructure.Persistence.Repositories;
 
 namespace TaskManagement.Tests.Integration;
 
@@ -21,13 +26,22 @@ public sealed class TaskManagementApiFactory : WebApplicationFactory<Program>
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
-            services.RemoveAll<IApplicationDbContext>();
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));
 
-            services.AddScoped<IApplicationDbContext>(provider =>
-                provider.GetRequiredService<ApplicationDbContext>());
+            services.Configure<JwtOptions>(options =>
+            {
+                options.Key = "task-management-development-jwt-key-32-bytes-minimum";
+                options.Issuer = "TaskManagement";
+                options.Audience = "TaskManagementClient";
+                options.ExpirationMinutes = 60;
+            });
+
+            services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+            services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<ApplicationDbContext>());
+            services.AddScoped<ITaskRepository, TaskRepository>();
+            services.AddScoped<IUserRepository, UserRepository>();
         });
     }
 

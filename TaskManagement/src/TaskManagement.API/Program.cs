@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
 using Microsoft.IdentityModel.Tokens;
-using TaskManagement.API.Auth;
 using TaskManagement.API.Filters;
 using TaskManagement.API.Middleware;
 using TaskManagement.Application;
 using TaskManagement.Infrastructure;
+using TaskManagement.Infrastructure.Auth;
 using TaskManagement.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,9 +42,6 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
         StatusCode = StatusCodes.Status400BadRequest
     };
 });
-builder.Services.AddValidatorsFromAssemblyContaining<TokenRequestValidator>();
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
-builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

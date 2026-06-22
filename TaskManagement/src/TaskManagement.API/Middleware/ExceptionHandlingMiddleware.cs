@@ -6,27 +6,16 @@ using TaskManagement.Domain.Exceptions;
 
 namespace TaskManagement.API.Middleware;
 
-public sealed class ExceptionHandlingMiddleware
+public sealed class ExceptionHandlingMiddleware(
+    RequestDelegate next,
+    ILogger<ExceptionHandlingMiddleware> logger,
+    IWebHostEnvironment environment)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-    private readonly IWebHostEnvironment _environment;
-
-    public ExceptionHandlingMiddleware(
-        RequestDelegate next,
-        ILogger<ExceptionHandlingMiddleware> logger,
-        IWebHostEnvironment environment)
-    {
-        _next = next;
-        _logger = logger;
-        _environment = environment;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         try
         {
-            await _next(context);
+            await next(context);
         }
         catch (Exception exception)
         {
@@ -74,7 +63,7 @@ public sealed class ExceptionHandlingMiddleware
 
         if (problem.Status == StatusCodes.Status500InternalServerError)
         {
-            _logger.LogError(exception, "Unhandled exception while processing request.");
+            logger.LogError(exception, "Unhandled exception while processing request.");
         }
 
         context.Response.StatusCode = problem.Status ?? StatusCodes.Status500InternalServerError;
@@ -84,6 +73,6 @@ public sealed class ExceptionHandlingMiddleware
 
     private bool ShouldIncludeExceptionDetails()
     {
-        return _environment.IsDevelopment() || _environment.IsEnvironment("Testing");
+        return environment.IsDevelopment() || environment.IsEnvironment("Testing");
     }
 }
